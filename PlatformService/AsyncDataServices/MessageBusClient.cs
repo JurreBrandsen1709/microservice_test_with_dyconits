@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using PlatformService.Dtos;
 using RabbitMQ.Client;
+using Dyconits.Event;
 
 namespace PlatformService.AsyncDataServices
 {
@@ -32,10 +33,10 @@ namespace PlatformService.AsyncDataServices
             }
         }
 
-        public void PublishNewPlatform(PlatformPublishedDto plat)
+        public void PublishNewPlatform(DyconitsEvent evnt)
         {
             Console.WriteLine("--> Publishing to Message Bus");
-            var message = JsonSerializer.Serialize(plat);
+            var message = JsonSerializer.Serialize(evnt);
 
             if (_connection.IsOpen)
             {

@@ -1,3 +1,5 @@
+using Dyconits.Configuration;
+using Dyconits.Extensions;
 using Microsoft.EntityFrameworkCore;
 using PlatformService.AsyncDataServices;
 using PlatformService.Data;
@@ -34,6 +36,10 @@ builder.Services.AddSingleton<IMessageBusClient, MessageBusClient>();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Services.ConfigureDyconits(new DyconitsOptions { });
+builder.Services.AddSingleton<IDyconitsOptions, DyconitsOptions>();
+builder.Services.AddSingleton<Dictionary<string, object>>();
 
 
 var app = builder.Build();

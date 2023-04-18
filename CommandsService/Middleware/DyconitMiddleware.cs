@@ -8,6 +8,8 @@ using CommandsService.Dtos;
 using CommandsService.EventProcessing;
 using CommandsService.Models;
 using Microsoft.AspNetCore.Http;
+using RabbitMQ.Client;
+using RabbitMQ.Client.Events;
 
 namespace CommandsService.Middleware
 {
@@ -48,9 +50,12 @@ namespace CommandsService.Middleware
                     // Print something to the logger
                     _logger.LogInformation("--> DyconitMiddleware is running, but attribute is null");
                 }
+
                 else
                 {
+                    _logger.LogInformation($"--> methodInfo is {methodInfo.Name}");
                     var attribute = methodInfo.GetCustomAttribute<Conit>();
+                    _logger.LogInformation($"--> attribute is {attribute}");
 
                     if (attribute == null)
                     {
@@ -62,10 +67,10 @@ namespace CommandsService.Middleware
                     {
                         double _numericalErrorThreshold = attribute.numericalErrorThreshold;
                         int _orderErrorThreshold = attribute.orderErrorThreshold;
-                        int _stalenessThreshold = attribute.stalenessThreshold;
+                        double _stalenessThreshold = attribute.stalenessThreshold;
 
                         var numericalError = CalculateNumericalError();
-                        if (numericalError > _numericalErrorThreshold)
+                        if (numericalError >= _numericalErrorThreshold)
                         {
                             // log error
                             _logger.LogError($"Numerical error threshold exceeded: {numericalError}");
@@ -73,54 +78,18 @@ namespace CommandsService.Middleware
 
                         // Check for order error
                         var orderError = CalculateOrderError();
-                        if (orderError > _orderErrorThreshold)
+                        if (orderError >= _orderErrorThreshold)
                         {
                             // log error
                             _logger.LogError($"Order error threshold exceeded: {orderError}");
                         }
 
                         // Check for staleness
-                        var staleness = CalculateStaleness();
-                        if (staleness > _stalenessThreshold)
+                        var staleness = CalculateStaleness(_stalenessThreshold);
+                        if (staleness >= _stalenessThreshold)
                         {
                             // log error
                             _logger.LogError($"Staleness threshold exceeded: {staleness}");
-
-                            // Issue GET request to get the most recent platforms from their database
-                            using (var client = new HttpClient())
-                            {
-                                client.BaseAddress = new Uri("http://localhost:5210/");
-                                var response = await client.GetAsync("api/platforms");
-                                var content = await response.Content.ReadAsStringAsync();
-
-                                // print the content to the console
-                                Console.WriteLine($"--> {content}");
-
-                                var toBeAddedPlatforms = JsonSerializer.Deserialize<List<PlatformCreateDto>>(content);
-
-                                try
-                                {
-                                    foreach (var platformDto in toBeAddedPlatforms)
-                                    {
-                                        var platform = _mapper.Map<Platform>(platformDto);
-                                        Console.WriteLine($"--> Adding Platform {platform.Name} to DB");
-                                        if (!repo.ExternalPlatformExists(platform.ExternalID))
-                                        {
-                                            repo.CreatePlatform(platform);
-                                            repo.SaveChanges();
-                                        }
-                                        else
-                                        {
-                                            Console.WriteLine("--> Platform already exists");
-                                        }
-                                    }
-
-                                }
-                                catch (Exception ex)
-                                {
-                                    Console.WriteLine($"--> Could not add platform to DB: {ex.Message}");
-                                }
-                            }
                         }
                     }
 
@@ -130,12 +99,61 @@ namespace CommandsService.Middleware
                     await _next(context);
                 }
             }
+            _logger.LogInformation("--> DyconitMiddleware is done");
         }
 
-        private int CalculateStaleness()
+        private double CalculateStaleness(double _stalenessThreshold)
         {
-            return 1;
+            // get the last received message timestamp from the message bus
+            DateTime lastMessageTimestamp = GetLastReceivedMessageTimestampFromBus();
+
+            // calculate the time elapsed since the last message was received
+            TimeSpan elapsed = DateTime.UtcNow - lastMessageTimestamp;
+
+            // check if the elapsed time exceeds the staleness threshold
+            if (elapsed.TotalMilliseconds > _stalenessThreshold)
+            {
+                // log error
+                _logger.LogError($"Staleness threshold exceeded: {elapsed.TotalMilliseconds} ms");
+                return elapsed.TotalMilliseconds;
+            }
+
+            return 0;
         }
+
+        /*
+         * This implementation assumes that you have a queue called "my_queue" in your RabbitMQ instance, and that messages are being published to that queue.
+         * The method sets up a consumer for the queue, and listens for incoming messages. When a message is received,
+         * the callback function updates the lastMessageTimestamp variable with the timestamp of the received message.
+         * Once the method has finished consuming messages from the queue, it returns the timestamp of the last received message.
+         */
+
+        private DateTime GetLastReceivedMessageTimestampFromBus()
+        {
+            var factory = new ConnectionFactory() { HostName = "localhost" };
+            using (var connection = factory.CreateConnection())
+            using (var channel = connection.CreateModel())
+            {
+                // set up the queue and consumer
+                channel.QueueDeclare(queue: "my_queue", durable: false, exclusive: false, autoDelete: false, arguments: null);
+                var consumer = new EventingBasicConsumer(channel);
+
+                // set up a callback function to handle received messages
+                long lastMessageTimestamp = 0;
+                consumer.Received += (model, ea) =>
+                {
+                    lastMessageTimestamp = ea.BasicProperties.Timestamp.UnixTime;
+                    // do something with the received message
+                };
+
+                // start consuming messages from the queue
+                channel.BasicConsume(queue: "my_queue", autoAck: true, consumer: consumer);
+
+                // return the Unix timestamp of the last received message
+                return DateTime.FromBinary(lastMessageTimestamp);
+            }
+        }
+
 
         private int CalculateOrderError()
         {

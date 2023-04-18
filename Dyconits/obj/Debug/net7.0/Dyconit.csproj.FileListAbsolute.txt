@@ -1,0 +1,5 @@
+C:\Users\JurreB\Documents\netMircoservice\Dyconits\obj\Debug\net7.0\Dyconit.csproj.AssemblyReference.cache
+C:\Users\JurreB\Documents\netMircoservice\Dyconits\obj\Debug\net7.0\Dyconit.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\JurreB\Documents\netMircoservice\Dyconits\obj\Debug\net7.0\Dyconit.AssemblyInfoInputs.cache
+C:\Users\JurreB\Documents\netMircoservice\Dyconits\obj\Debug\net7.0\Dyconit.AssemblyInfo.cs
+C:\Users\JurreB\Documents\netMircoservice\Dyconits\obj\Debug\net7.0\Dyconit.csproj.CoreCompileInputs.cache

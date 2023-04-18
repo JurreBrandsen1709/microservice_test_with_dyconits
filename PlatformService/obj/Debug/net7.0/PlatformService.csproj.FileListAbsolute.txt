@@ -79,3 +79,5 @@ C:\Users\JurreB\Documents\netMircoservice\PlatformService\obj\Debug\net7.0\Platf
 C:\Users\JurreB\Documents\netMircoservice\PlatformService\obj\Debug\net7.0\ref\PlatformService.dll
 C:\Users\JurreB\Documents\netMircoservice\PlatformService\bin\Debug\net7.0\appsettings.Production.json
 C:\Users\JurreB\Documents\netMircoservice\PlatformService\bin\Debug\net7.0\RabbitMQ.Client.dll
+C:\Users\JurreB\Documents\netMircoservice\PlatformService\bin\Debug\net7.0\Dyconits.dll
+C:\Users\JurreB\Documents\netMircoservice\PlatformService\bin\Debug\net7.0\Dyconits.pdb

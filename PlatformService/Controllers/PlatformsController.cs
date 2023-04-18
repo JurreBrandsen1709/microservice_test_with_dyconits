@@ -8,6 +8,7 @@ using PlatformService.Data;
 using PlatformService.Dtos;
 using PlatformService.Models;
 using PlatformService.SyncDataServices.Http;
+using Dyconits.Event;
 
 namespace PlatformService.Controllers
 {
@@ -63,22 +64,20 @@ namespace PlatformService.Controllers
 
             var platformReadDto = _mapper.Map<PlatformReadDto>(platformModel);
 
-            // Send Sync Message
-            // try
-            // {
-            //     await _commandDataClient.SendPlatformToCommand(platformReadDto);
-            // }
-            // catch(Exception ex)
-            // {
-            //     Console.WriteLine($"--> Could not send synchronously: {ex.Message}");
-            // }
-
             //Send Async Message
             try
             {
                 var platformPublishedDto = _mapper.Map<PlatformPublishedDto>(platformReadDto);
-                platformPublishedDto.Event = "Platform_Published";
-                _messageBusClient.PublishNewPlatform(platformPublishedDto);
+
+                var metadata = new Dictionary<string, object>();
+                metadata["Id"] = platformPublishedDto.Id;
+                metadata["Name"] = platformPublishedDto.Name;
+                metadata["Event"] = "Platform_Published";
+
+                DyconitsEvent dyconitsEvent = new DyconitsEvent(metadata);
+
+                // Send the event to the message bus
+                _messageBusClient.PublishNewPlatform(dyconitsEvent);
             }
             catch (Exception ex)
             {
@@ -87,5 +86,6 @@ namespace PlatformService.Controllers
 
             return CreatedAtRoute(nameof(GetPlatformById), new { Id = platformReadDto.Id}, platformReadDto);
         }
+
     }
 }

@@ -34,7 +34,7 @@ namespace CommandsService.EventProcessing
             }
         }
 
-        [Conit(numericalErrorThreshold = 0, orderErrorThreshold = 0, stalenessThreshold = 0)]
+        [Conit(numericalErrorThreshold = 0.0, orderErrorThreshold = 0, stalenessThreshold = 0)]
         private void AddPlatform(string message)
         {
             using (var scope = _scopeFactory.CreateScope())

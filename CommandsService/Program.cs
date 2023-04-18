@@ -49,6 +49,6 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-app.UseDyconitsMiddleware();
+// app.UseDyconitsMiddleware();
 
 app.Run();
